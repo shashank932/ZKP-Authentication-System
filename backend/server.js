@@ -7,10 +7,7 @@ const { generateProof, verifyProof, extractChecksFromProof } = require("./zkp_sn
 
 const app = express();
 app.use(cors({ 
-  origin: (origin, callback) => {
-    // Allow all origins for now to fix the deployment issue
-    callback(null, true);
-  },
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true, 
   credentials: true 
 }));
 app.use(express.json());
@@ -504,16 +501,37 @@ app.post("/api/claims/recover/:id", async (req, res) => {
   }
 });
 
-// ─── START ───────────────────────────────────────────────────────────────────
+// ─── DATABASE CONNECTION ──────────────────────────────────────────────────────
 
-mongoose.connect(MONGO_URI)
-  .then(() => {
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(MONGO_URI);
     console.log("✅ MongoDB connected!");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+    // In serverless, we don't want to process.exit(1) as it kills the instance
+    if (require.main === module) {
+      process.exit(1);
+    }
+  }
+};
+
+// ─── STARTUP ──────────────────────────────────────────────────────────────────
+
+if (require.main === module) {
+  // Local execution
+  connectDB().then(() => {
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`🚀 Backend running at http://localhost:${PORT}`);
     });
-  })
-  .catch((error) => {
-    console.error("❌ MongoDB connection failed:", error.message);
-    process.exit(1);
   });
+} else {
+  // Vercel execution: ensure DB is connected for every request
+  app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+  });
+}
+
+module.exports = app;
