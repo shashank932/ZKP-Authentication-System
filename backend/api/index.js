@@ -200,7 +200,13 @@ function serializeClaimForRole(claim, role, patient) {
 // ─── ROUTES ─────────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => res.send("Backend running"));
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    readyState: mongoose.connection.readyState
+  });
+});
 
 app.post(["/patient", "/api/patient"], async (req, res) => {
   try {
