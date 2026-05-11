@@ -514,14 +514,13 @@ app.post("/claims/recover/:id", async (req, res) => {
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) return;
   try {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // 5 seconds timeout
+      connectTimeoutMS: 10000,
+    });
     console.log("✅ MongoDB connected!");
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
-    // In serverless, we don't want to process.exit(1) as it kills the instance
-    if (require.main === module) {
-      process.exit(1);
-    }
   }
 };
 
