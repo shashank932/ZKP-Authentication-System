@@ -200,9 +200,9 @@ function serializeClaimForRole(claim, role, patient) {
 // ─── ROUTES ─────────────────────────────────────────────────────────────────
 
 app.get("/", (req, res) => res.send("Backend running"));
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
-app.post("/api/patient", async (req, res) => {
+app.post("/patient", async (req, res) => {
   try {
     const profile = {
       name: req.body.name || "",
@@ -236,7 +236,7 @@ app.post("/api/patient", async (req, res) => {
   }
 });
 
-app.get("/api/patient/:id", async (req, res) => {
+app.get("/patient/:id", async (req, res) => {
   try {
     const patient = await Patient.findOne({ id: req.params.id });
     if (!patient) return res.status(404).json({ error: "Patient not found" });
@@ -249,7 +249,7 @@ app.get("/api/patient/:id", async (req, res) => {
   }
 });
 
-app.get("/api/patient/claims/:id", async (req, res) => {
+app.get("/patient/claims/:id", async (req, res) => {
   try {
     const claims = await Claim.find({ patientId: req.params.id });
     res.json(claims.map(serializeClaimForPatient));
@@ -258,7 +258,7 @@ app.get("/api/patient/claims/:id", async (req, res) => {
   }
 });
 
-app.post("/api/claims", async (req, res) => {
+app.post("/claims", async (req, res) => {
   try {
     const patient = await Patient.findOne({ id: req.body.patientId });
     if (!patient) return res.status(404).json({ error: "Patient profile not found" });
@@ -333,7 +333,7 @@ app.post("/api/claims", async (req, res) => {
   }
 });
 
-app.get("/api/hospital/claims", async (req, res) => {
+app.get("/hospital/claims", async (req, res) => {
   try {
     const claims = await Claim.find({ isDeleted: { $ne: true } });
     const result = await Promise.all(claims.map(async (claim) => {
@@ -346,7 +346,7 @@ app.get("/api/hospital/claims", async (req, res) => {
   }
 });
 
-app.post("/api/hospital/verify/:id", async (req, res) => {
+app.post("/hospital/verify/:id", async (req, res) => {
   try {
     const claim = await Claim.findOne({ id: req.params.id });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
@@ -381,7 +381,7 @@ app.post("/api/hospital/verify/:id", async (req, res) => {
   }
 });
 
-app.get("/api/insurance/claims", async (req, res) => {
+app.get("/insurance/claims", async (req, res) => {
   try {
     const claims = await Claim.find({ isDeleted: { $ne: true } });
     const result = await Promise.all(claims.map(async (claim) => {
@@ -394,7 +394,7 @@ app.get("/api/insurance/claims", async (req, res) => {
   }
 });
 
-app.post("/api/insurance/verify/:id", async (req, res) => {
+app.post("/insurance/verify/:id", async (req, res) => {
   try {
     const claim = await Claim.findOne({ id: req.params.id });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
@@ -427,7 +427,7 @@ app.post("/api/insurance/verify/:id", async (req, res) => {
   }
 });
 
-app.get("/api/debug/proof/:id", async (req, res) => {
+app.get("/debug/proof/:id", async (req, res) => {
   try {
     const claim = await Claim.findOne({ id: req.params.id });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
@@ -446,7 +446,7 @@ app.get("/api/debug/proof/:id", async (req, res) => {
   }
 });
 
-app.post("/api/claims/permissions/:id", async (req, res) => {
+app.post("/claims/permissions/:id", async (req, res) => {
   try {
     const { permissions } = req.body;
      const claim = await Claim.findOneAndUpdate(
@@ -461,7 +461,7 @@ app.post("/api/claims/permissions/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/patient/:id", async (req, res) => {
+app.delete("/patient/:id", async (req, res) => {
   try {
      const patient = await Patient.findOneAndUpdate(
        { id: req.params.id },
@@ -475,7 +475,7 @@ app.delete("/api/patient/:id", async (req, res) => {
   }
 });
 
-app.post("/api/patient/recover/:id", async (req, res) => {
+app.post("/patient/recover/:id", async (req, res) => {
   try {
      const patient = await Patient.findOneAndUpdate(
        { id: req.params.id },
@@ -489,7 +489,7 @@ app.post("/api/patient/recover/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/claims/:id", async (req, res) => {
+app.delete("/claims/:id", async (req, res) => {
   try {
      const claim = await Claim.findOneAndUpdate({ id: req.params.id }, { isDeleted: true }, { returnDocument: 'after' });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
@@ -499,7 +499,7 @@ app.delete("/api/claims/:id", async (req, res) => {
   }
 });
 
-app.post("/api/claims/recover/:id", async (req, res) => {
+app.post("/claims/recover/:id", async (req, res) => {
   try {
      const claim = await Claim.findOneAndUpdate({ id: req.params.id }, { isDeleted: false }, { returnDocument: 'after' });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
