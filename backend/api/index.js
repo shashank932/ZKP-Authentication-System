@@ -7,9 +7,22 @@ const mongoose = require("mongoose");
 const { generateProof, verifyProof, extractChecksFromProof } = require("./zkp_snark");
 
 const app = express();
-app.use(cors({ 
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true, 
-  credentials: true 
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "https://zkp-frontend-taupe.vercel.app"
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.indexOf(origin) !== -1 || origin.endsWith(".vercel.app")) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 }));
 app.use(express.json());
 
