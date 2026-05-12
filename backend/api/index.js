@@ -43,9 +43,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-const ALLOWED_ORIGINS = [
-
-
 const patientSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   profile: { type: Object, required: true },
@@ -367,7 +364,7 @@ app.put("/api/claims/:id", async (req, res) => {
     const claim = await Claim.findOne({ id: req.params.id });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
 
-    const patient = await Patient.findOne({ patientId: claim.patientId });
+    const patient = await Patient.findOne({ id: claim.patientId });
 
     const claimSnapshot = {
       hospital: req.body.hospital || claim.hospital,
