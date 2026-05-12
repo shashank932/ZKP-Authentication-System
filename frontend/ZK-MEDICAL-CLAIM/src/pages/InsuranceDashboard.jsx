@@ -177,13 +177,12 @@ export default function InsuranceDashboard() {
               className="rounded-[32px] border border-slate-200 bg-white p-6 shadow-sm"
             >
               <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                    Claim ID
-                  </div>
-                  <div className="mt-1 font-mono text-sm font-semibold text-sky-700">
-                    {"*".repeat(12)}
-                  </div>
+                 <div>
+                   <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Claim #{claim.serialNumber || "N/A"} (ID: {claim.id})</div>
+                   <div className="mt-1 font-mono text-sm font-semibold text-sky-700">
+                     {"*".repeat(12)}
+                   </div>
+
                    <div className="mt-3 flex flex-wrap items-center gap-2">
                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
                        claim.status === "Approved"

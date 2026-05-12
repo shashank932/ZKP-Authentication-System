@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPatient, getClaims, submitClaim, savePatient, deleteClaim, recoverClaim, updateClaimPermissions } from "../services/api";
+import { getPatient, getClaims, submitClaim, savePatient, deleteClaim, recoverClaim, updateClaimPermissions, updateClaim } from "../services/api";
 
 const profileFields = [
   { key: "name", label: "Full Name", required: true, type: "text", placeholder: "e.g. John Smith" },
@@ -209,6 +209,92 @@ function PatientProfileForm({ patientId, initialPatient, onSaved, isSetup = fals
   );
 }
 
+// ── Edit Claim Modal ──────────────────────────────────────────────────────────
+function EditClaimModal({ claim, onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    hospital: claim.claimData?.hospital || "",
+    type: claim.claimData?.type || "Consultation",
+    amount: claim.claimData?.amount || "",
+    date: claim.claimData?.date || "",
+    description: claim.claimData?.description || "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    setError("");
+    if (!form.hospital || !form.amount || !form.date) {
+      setError("Hospital, amount, and date are required.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await updateClaim(claim.id, form);
+      onSuccess();
+      onClose();
+    } catch (e) {
+      setError(e.message || "Failed to update claim.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div>
+            <h3 className="font-semibold text-gray-900 text-sm">Edit Claim #{claim.serialNumber || "N/A"}</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Updating claim data and regenerating ZK proof</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div className="p-6">
+          {error && <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">{error}</div>}
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Hospital / Clinic Name <span className="text-red-500">*</span></label>
+              <input className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                value={form.hospital} onChange={e => setForm({ ...form, hospital: e.target.value })} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Treatment Type <span className="text-red-500">*</span></label>
+              <select className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white transition"
+                value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                {["Consultation","Surgery","Hospitalization","Diagnostic","Pharmacy","Emergency","Dental","Vision"].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Claim Amount (₹) <span className="text-red-500">*</span></label>
+                <input type="number" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Date of Treatment <span className="text-red-500">*</span></label>
+                <input type="date" className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Description <span className="text-gray-400 font-normal normal-case">(optional)</span></label>
+              <textarea className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"
+                rows={3} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <button onClick={handleSave} disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors text-sm">
+              {loading ? "Updating & Generating Proof..." : "Update Claim"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── New Claim Modal ──────────────────────────────────────────────────────────
 function NewClaimModal({ patientId, onClose, onSuccess }) {
   const [form, setForm]         = useState({ hospital: "", type: "Consultation", amount: "", date: "", description: "" });
@@ -348,6 +434,8 @@ export default function PatientDashboard() {
   const [needsSetup, setNeedsSetup] = useState(false);
   const [activeTab, setActiveTab]   = useState("overview");
   const [selectedClaimId, setSelectedClaimId] = useState(null);
+  const [selectedClaimForEdit, setSelectedClaimForEdit] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [claimPermissions, setClaimPermissions] = useState({});
   const [showModal, setShowModal]   = useState(false);
 
@@ -607,39 +695,43 @@ export default function PatientDashboard() {
                 </div>
               ) : (
                 <table className="w-full text-sm">
-                   <thead className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
-                     <tr>
-                       <th className="px-6 py-3.5 text-left">Claim ID</th>
-                       <th className="px-6 py-3.5 text-left">Hospital</th>
-                       <th className="px-6 py-3.5 text-left">Treatment</th>
-                       <th className="px-6 py-3.5 text-left">Date</th>
-                       <th className="px-6 py-3.5 text-right">Amount</th>
-                       <th className="px-6 py-3.5 text-center">ZK Status</th>
-                       <th className="px-6 py-3.5 text-center">Status</th>
-                       <th className="px-6 py-3.5 text-center">Actions</th>
-                     </tr>
-                   </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {claims.filter(c => !c.isDeleted).reverse().map(c => (
-                        <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 font-mono text-xs text-blue-600 font-semibold cursor-pointer hover:underline" onClick={() => handleSelectClaim(c)}>{c.id}</td>
-                          <td className="px-6 py-4 text-gray-800 font-medium">{c.claimData?.hospital || "-"}</td>
-                          <td className="px-6 py-4 text-gray-500">{c.claimData?.type || "-"}</td>
-                          <td className="px-6 py-4 text-gray-500">{c.claimData?.date || "-"}</td>
-                          <td className="px-6 py-4 text-right font-semibold text-gray-900">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
-                          <td className="px-6 py-4 text-center">
-                             <div className="flex flex-col items-center gap-1">
-                               {c.zkVerified ? <span className="text-xs text-emerald-700 font-medium">✓ Verified</span> : <span className="text-xs text-gray-400">—</span>}
-                               <span className="text-[9px] font-mono text-gray-400 truncate max-w-[80px]">{c.zkProofHash?.slice(0, 8)}...</span>
-                             </div>
-                          </td>
-                          <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
+                    <thead className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+                      <tr>
+                        <th className="px-6 py-3.5 text-left">S.No</th>
+                        <th className="px-6 py-3.5 text-left">Claim ID</th>
+                        <th className="px-6 py-3.5 text-left">Hospital</th>
+                        <th className="px-6 py-3.5 text-left">Treatment</th>
+                        <th className="px-6 py-3.5 text-left">Date</th>
+                        <th className="px-6 py-3.5 text-right">Amount</th>
+                        <th className="px-6 py-3.5 text-center">ZK Status</th>
+                        <th className="px-6 py-3.5 text-center">Status</th>
+                        <th className="px-6 py-3.5 text-center">Actions</th>
+                      </tr>
+                    </thead>
+                     <tbody className="divide-y divide-gray-50">
+                       {claims.filter(c => !c.isDeleted).reverse().map(c => (
+                         <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                           <td className="px-6 py-4 text-gray-800 font-medium">{c.serialNumber || "-"}</td>
+                           <td className="px-6 py-4 font-mono text-xs text-blue-600 font-semibold cursor-pointer hover:underline" onClick={() => handleSelectClaim(c)}>{c.id}</td>
+                           <td className="px-6 py-4 text-gray-800 font-medium">{c.claimData?.hospital || "-"}</td>
+                           <td className="px-6 py-4 text-gray-500">{c.claimData?.type || "-"}</td>
+                           <td className="px-6 py-4 text-gray-500">{c.claimData?.date || "-"}</td>
+                           <td className="px-6 py-4 text-right font-semibold text-gray-900">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
                            <td className="px-6 py-4 text-center">
-                             <button onClick={() => handleDeleteClaim(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete</button>
+                              <div className="flex flex-col items-center gap-1">
+                                {c.zkVerified ? <span className="text-xs text-emerald-700 font-medium">✓ Verified</span> : <span className="text-xs text-gray-400">—</span>}
+                                <span className="text-[9px] font-mono text-gray-400 truncate max-w-[80px]">{c.zkProofHash?.slice(0, 8)}...</span>
+                              </div>
                            </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                           <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
+                            <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
+                              <button onClick={() => { setSelectedClaimForEdit(c); setShowEditModal(true); }} className="text-xs text-blue-600 hover:underline font-semibold">Edit</button>
+                              <button onClick={() => handleDeleteClaim(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete</button>
+                            </td>
+                         </tr>
+                       ))}
+                     </tbody>
+
                  </table>
                )}
              </div>
@@ -802,7 +894,8 @@ export default function PatientDashboard() {
         )}
       </main>
 
-      {showModal && <NewClaimModal patientId={PATIENT_ID} onClose={() => setShowModal(false)} onSuccess={loadData} />}
-    </div>
-  );
-}
+       {showModal && <NewClaimModal patientId={PATIENT_ID} onClose={() => setShowModal(false)} onSuccess={loadData} />}
+       {showEditModal && <EditClaimModal claim={selectedClaimForEdit} onClose={() => setShowEditModal(false)} onSuccess={loadData} />}
+     </div>
+   );
+ }

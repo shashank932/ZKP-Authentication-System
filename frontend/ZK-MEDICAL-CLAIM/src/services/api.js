@@ -65,7 +65,16 @@ export function updateClaimPermissions(claimId, permissions) {
   });
 }
 
+export function updateClaim(claimId, claimData) {
+  return request(`/claims/${claimId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(claimData),
+  });
+}
+
 export function getHospitalClaims() {
+
   return request("/hospital/claims");
 }
 

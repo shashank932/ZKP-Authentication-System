@@ -7,23 +7,44 @@ const mongoose = require("mongoose");
 const { generateProof, verifyProof, extractChecksFromProof } = require("./zkp_snark");
 
 const app = express();
-const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "https://zkp-frontend-taupe.vercel.app"
-];
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-app.use(express.json());
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) return;
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 10000,
+    });
+    console.log("✅ MongoDB connected!");
+  } catch (error) {
+    console.error("❌ MongoDB connection failed:", error.message);
+  }
+};
 
 const PORT = Number(process.env.PORT || 3001);
 const MONGO_URI = process.env.MONGO_URI;
 
-// ─── SCHEMAS ────────────────────────────────────────────────────────────────
+if (require.main === module) {
+  connectDB().then(() => {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Backend running at http://localhost:${PORT}`);
+    });
+  });
+} else {
+  app.use(async (req, res, next) => {
+    await connectDB();
+    next();
+  });
+}
+
+app.use(cors({ 
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : true, 
+  credentials: true 
+}));
+app.use(express.json());
+
+const ALLOWED_ORIGINS = [
+
 
 const patientSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
@@ -36,6 +57,7 @@ const patientSchema = new mongoose.Schema({
 
 const claimSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
+  serialNumber: { type: Number },
   patientId: { type: String, required: true },
   hospital: String,
   type: String,
@@ -280,6 +302,7 @@ app.post(["/claims", "/api/claims"], async (req, res) => {
     const claimData = {
       id: Date.now().toString(),
       patientId: req.body.patientId,
+      serialNumber: (await Claim.countDocuments({})) + 1,
       ...claimSnapshot,
       coverAmount: patient.profile.coverAmount,
       profileSnapshot: { ...patient.profile },
@@ -334,6 +357,74 @@ app.post(["/claims", "/api/claims"], async (req, res) => {
 
     const claim = await Claim.create(claimData);
     res.json({ success: true, claim: serializeClaimForPatient(claim) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/claims/:id", async (req, res) => {
+  try {
+    const claim = await Claim.findOne({ id: req.params.id });
+    if (!claim) return res.status(404).json({ error: "Claim not found" });
+
+    const patient = await Patient.findOne({ patientId: claim.patientId });
+
+    const claimSnapshot = {
+      hospital: req.body.hospital || claim.hospital,
+      type: req.body.type || claim.type,
+      date: req.body.date || claim.date,
+      amount: Number(req.body.amount || claim.amount),
+      description: req.body.description || claim.description,
+    };
+
+    const updatedClaimData = {
+      ...claim.toObject(),
+      ...claimSnapshot,
+      claimSnapshot,
+      hashedClaim: buildHashedFields(CLAIM_FIELDS, claimSnapshot),
+      claimPermissions: buildPermissions(CLAIM_FIELDS, req.body.claimPermissions || claim.claimPermissions, false),
+    };
+
+    try {
+      const zkPacket = await generateProof(updatedClaimData);
+      updatedClaimData.zkProof = {
+        proof: zkPacket.proof,
+        publicSignals: zkPacket.publicSignals,
+        statement: zkPacket.statement,
+      };
+      updatedClaimData.zkProofHash = zkPacket.proofHash;
+
+      const zkValid = await verifyProof(updatedClaimData.zkProof);
+      const zkChecks = extractChecksFromProof(updatedClaimData.zkProof);
+      const noDup = await hasNoDuplicate(updatedClaimData);
+
+      const checks = {
+        zkVerified: zkValid,
+        hospitalVerified: true,
+        amountWithinLimit: zkChecks?.amountWithinLimit ?? false,
+        treatmentCovered: zkChecks?.treatmentCovered ?? false,
+        withinTimeLimit: zkChecks?.withinTimeLimit ?? false,
+        noDuplicate: noDup,
+      };
+
+      const autoDecision = Object.values(checks).every(Boolean) ? "Approved" : "Rejected";
+
+      updatedClaimData.zkVerified = zkValid;
+      updatedClaimData.hospitalVerified = true;
+      updatedClaimData.checks = checks;
+      updatedClaimData.autoDecision = autoDecision;
+      updatedClaimData.status = autoDecision;
+    } catch (error) {
+      console.error("Failed to regenerate proof during edit:", error.message);
+    }
+
+    const updatedClaim = await Claim.findOneAndUpdate(
+      { id: req.params.id },
+      updatedClaimData,
+      { new: true }
+    );
+
+    res.json({ success: true, claim: serializeClaimForPatient(updatedClaim) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -514,37 +605,5 @@ app.post("/claims/recover/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-// ─── DATABASE CONNECTION ──────────────────────────────────────────────────────
-
-const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) return;
-  try {
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000, // 5 seconds timeout
-      connectTimeoutMS: 10000,
-    });
-    console.log("✅ MongoDB connected!");
-  } catch (error) {
-    console.error("❌ MongoDB connection failed:", error.message);
-  }
-};
-
-// ─── STARTUP ──────────────────────────────────────────────────────────────────
-
-if (require.main === module) {
-  // Local execution
-  connectDB().then(() => {
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`🚀 Backend running at http://localhost:${PORT}`);
-    });
-  });
-} else {
-  // Vercel execution: ensure DB is connected for every request
-  app.use(async (req, res, next) => {
-    await connectDB();
-    next();
-  });
-}
 
 module.exports = app;
