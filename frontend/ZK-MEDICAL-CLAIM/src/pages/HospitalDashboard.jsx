@@ -154,9 +154,8 @@ export default function HospitalDashboard() {
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Claim #{claim.serialNumber || "N/A"} (ID: {claim.id})</div>
                 
-                <div className="mt-1 font-mono text-sm font-semibold text-sky-700">
-
                  <div className="mt-3 flex flex-wrap items-center gap-2">
+
                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${claim.status === "Approved" ? "bg-emerald-50 text-emerald-700" : claim.status === "Rejected" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{claim.status}</span>
                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Proof hash {claim.proofHash || "missing"}</span>
                    {claim.status === "Pending" && (
