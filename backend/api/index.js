@@ -557,7 +557,7 @@ app.post("/claims/permissions/:id", async (req, res) => {
   }
 });
 
-app.delete("/patient/:id", async (req, res) => {
+app.delete(["/patient/:id", "/api/patient/:id"], async (req, res) => {
   try {
      const patient = await Patient.findOneAndUpdate(
        { id: req.params.id },
@@ -571,7 +571,7 @@ app.delete("/patient/:id", async (req, res) => {
   }
 });
 
-app.post("/patient/recover/:id", async (req, res) => {
+app.post(["/patient/recover/:id", "/api/patient/recover/:id"], async (req, res) => {
   try {
      const patient = await Patient.findOneAndUpdate(
        { id: req.params.id },
@@ -585,7 +585,7 @@ app.post("/patient/recover/:id", async (req, res) => {
   }
 });
 
-app.delete("/claims/:id", async (req, res) => {
+app.delete(["/claims/:id", "/api/claims/:id"], async (req, res) => {
   try {
      const claim = await Claim.findOneAndUpdate({ id: req.params.id }, { isDeleted: true }, { returnDocument: 'after' });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
@@ -595,7 +595,7 @@ app.delete("/claims/:id", async (req, res) => {
   }
 });
 
-app.post("/claims/recover/:id", async (req, res) => {
+app.post(["/claims/recover/:id", "/api/claims/recover/:id"], async (req, res) => {
   try {
      const claim = await Claim.findOneAndUpdate({ id: req.params.id }, { isDeleted: false }, { returnDocument: 'after' });
     if (!claim) return res.status(404).json({ error: "Claim not found" });
