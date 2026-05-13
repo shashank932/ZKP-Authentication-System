@@ -585,6 +585,16 @@ app.post(["/patient/recover/:id", "/api/patient/recover/:id"], async (req, res) 
   }
 });
 
+app.delete("/api/claims/permanent/:id", async (req, res) => {
+  try {
+    const result = await Claim.findOneAndDelete({ id: req.params.id });
+    if (!result) return res.status(404).json({ error: "Claim not found" });
+    res.json({ success: true, message: "Claim permanently deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete(["/claims/:id", "/api/claims/:id"], async (req, res) => {
   try {
      const claim = await Claim.findOneAndUpdate({ id: req.params.id }, { isDeleted: true }, { returnDocument: 'after' });

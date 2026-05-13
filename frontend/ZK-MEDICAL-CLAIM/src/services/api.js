@@ -43,6 +43,12 @@ export function deleteClaim(claimId) {
   });
 }
 
+export function permanentDeleteClaim(claimId) {
+  return request(`/claims/permanent/${claimId}`, {
+    method: "DELETE",
+  });
+}
+
 export function recoverClaim(claimId) {
   return request(`/claims/recover/${claimId}`, {
     method: "POST",

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPatient, getClaims, submitClaim, savePatient, deleteClaim, recoverClaim, updateClaimPermissions, updateClaim } from "../services/api";
+import { getPatient, getClaims, submitClaim, savePatient, deleteClaim, recoverClaim, updateClaimPermissions, updateClaim, permanentDeleteClaim } from "../services/api";
 
 const profileFields = [
   { key: "name", label: "Full Name", required: true, type: "text", placeholder: "e.g. John Smith" },
@@ -470,6 +470,12 @@ export default function PatientDashboard() {
     try { await recoverClaim(id); loadData(); } catch (e) { alert(e.message); }
   };
 
+  const handlePermanentDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this claim forever? This action cannot be undone.")) {
+      try { await permanentDeleteClaim(id); loadData(); } catch (e) { alert(e.message); }
+    }
+  };
+
   const handleClaimPermissionChange = async (field, role, value) => {
     const newPermissions = { ...claimPermissions };
     newPermissions[field] = { ...(newPermissions[field] || {}), [role]: value };
@@ -765,9 +771,11 @@ export default function PatientDashboard() {
                            <td className="px-6 py-4 text-gray-500">{c.claimData?.type || "-"}</td>
                            <td className="px-6 py-4 text-right text-gray-500">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
                            <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
-                           <td className="px-6 py-4 text-center">
-                             <button onClick={() => handleRecoverClaim(c.id)} className="text-xs text-blue-600 hover:underline font-semibold">Recover</button>
-                           </td>
+                                <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
+                                  <button onClick={() => handleRecoverClaim(c.id)} className="text-xs text-blue-600 hover:underline font-semibold">Recover</button>
+                                  <button onClick={() => handlePermanentDelete(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete Forever</button>
+                                </td>
+
                          </tr>
                        ))}
                      </tbody>
