@@ -174,6 +174,7 @@ function isAmountWithinPolicy(claim, patient) {
 function serializeClaimForPatient(claim) {
   return {
     id: claim.id,
+    serialNumber: claim.serialNumber,
     patientId: claim.patientId,
     status: claim.status,
     isDeleted: claim.isDeleted,
@@ -199,6 +200,7 @@ function serializeClaimForPatient(claim) {
 function serializeClaimForRole(claim, role, patient) {
   return {
     id: claim.id,
+    serialNumber: claim.serialNumber,
     patientId: claim.patientId,
     status: claim.status,
     submittedAt: claim.submittedAt,
