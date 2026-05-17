@@ -752,7 +752,7 @@ export default function PatientDashboard() {
              </div>
 
              {/* ── Deleted Claims Section ── */}
-             {claims.some(c => c.isDeleted) && (
+             {true && (
                <div className="mt-12">
                  <div className="flex items-center gap-2 mb-4">
                    <h2 className="text-lg font-bold text-gray-900">Deleted Claims</h2>
@@ -760,8 +760,20 @@ export default function PatientDashboard() {
                      {claims.filter(c => c.isDeleted).length}
                    </span>
                    <div className="ml-auto flex gap-3">
-                     <button onClick={handleRecoverAllClaims} className="text-xs text-blue-600 hover:underline font-semibold bg-blue-50 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-100">Recover All</button>
-                     <button onClick={handlePermanentDeleteAll} className="text-xs text-red-600 hover:underline font-semibold bg-red-50 px-3 py-1.5 rounded-lg transition-colors hover:bg-red-100">Delete All Forever</button>
+                     <button 
+                       onClick={handleRecoverAllClaims} 
+                       disabled={claims.filter(c => c.isDeleted).length === 0}
+                       className="text-xs text-blue-600 hover:underline font-semibold bg-blue-50 px-3 py-1.5 rounded-lg transition-colors hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       Recover All
+                     </button>
+                     <button 
+                       onClick={handlePermanentDeleteAll} 
+                       disabled={claims.filter(c => c.isDeleted).length === 0}
+                       className="text-xs text-red-600 hover:underline font-semibold bg-red-50 px-3 py-1.5 rounded-lg transition-colors hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                     >
+                       Delete All Forever
+                     </button>
                    </div>
                  </div>
                  <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -777,20 +789,27 @@ export default function PatientDashboard() {
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-gray-50">
-                       {claims.filter(c => c.isDeleted).reverse().map(c => (
-                         <tr key={c.id} className="bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                           <td className="px-6 py-4 font-mono text-xs text-gray-400">{c.id}</td>
-                           <td className="px-6 py-4 text-gray-500">{c.claimData?.hospital || "-"}</td>
-                           <td className="px-6 py-4 text-gray-500">{c.claimData?.type || "-"}</td>
-                           <td className="px-6 py-4 text-right text-gray-500">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
-                           <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
-                                <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
-                                  <button onClick={() => handleRecoverClaim(c.id)} className="text-xs text-blue-600 hover:underline font-semibold">Recover</button>
-                                  <button onClick={() => handlePermanentDelete(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete Forever</button>
-                                </td>
-
+                       {claims.filter(c => c.isDeleted).length === 0 ? (
+                         <tr>
+                           <td colSpan={6} className="text-center py-10 text-gray-400 text-xs font-medium">
+                             No deleted claims yet.
+                           </td>
                          </tr>
-                       ))}
+                       ) : (
+                         claims.filter(c => c.isDeleted).reverse().map(c => (
+                           <tr key={c.id} className="bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                             <td className="px-6 py-4 font-mono text-xs text-gray-400">{c.id}</td>
+                             <td className="px-6 py-4 text-gray-500">{c.claimData?.hospital || "-"}</td>
+                             <td className="px-6 py-4 text-gray-500">{c.claimData?.type || "-"}</td>
+                             <td className="px-6 py-4 text-right text-gray-500">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
+                             <td className="px-6 py-4 text-center"><StatusBadge status={c.status} /></td>
+                             <td className="px-6 py-4 text-center flex items-center justify-center gap-3">
+                               <button onClick={() => handleRecoverClaim(c.id)} className="text-xs text-blue-600 hover:underline font-semibold">Recover</button>
+                               <button onClick={() => handlePermanentDelete(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete Forever</button>
+                             </td>
+                           </tr>
+                         ))
+                       )}
                      </tbody>
                    </table>
                  </div>
