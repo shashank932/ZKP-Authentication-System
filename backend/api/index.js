@@ -298,12 +298,21 @@ app.post(["/claims", "/api/claims"], async (req, res) => {
       description: req.body.description || "",
     };
 
+    // Calculate remaining coverage amount
+    const approvedClaims = await Claim.find({
+      patientId: req.body.patientId,
+      status: "Approved",
+      isDeleted: { $ne: true }
+    });
+    const totalUsed = approvedClaims.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    const remainingCoverage = Math.max(0, Number(patient.profile.coverAmount || 500000) - totalUsed);
+
     const claimData = {
       id: Date.now().toString(),
       patientId: req.body.patientId,
       serialNumber: (await Claim.countDocuments({})) + 1,
       ...claimSnapshot,
-      coverAmount: patient.profile.coverAmount,
+      coverAmount: remainingCoverage,
       profileSnapshot: { ...patient.profile },
       hashedProfile: buildHashedFields(PROFILE_FIELDS, patient.profile),
       profilePermissions: buildPermissions(PROFILE_FIELDS, req.body.profilePermissions || patient.permissions, false),
@@ -376,9 +385,20 @@ app.put("/api/claims/:id", async (req, res) => {
       description: req.body.description || claim.description,
     };
 
+    // Calculate remaining coverage amount excluding the current claim (if it was already approved)
+    const approvedClaims = await Claim.find({
+      patientId: claim.patientId,
+      status: "Approved",
+      isDeleted: { $ne: true },
+      id: { $ne: claim.id }
+    });
+    const totalUsed = approvedClaims.reduce((sum, c) => sum + Number(c.amount || 0), 0);
+    const remainingCoverage = Math.max(0, Number(patient.profile.coverAmount || 500000) - totalUsed);
+
     const updatedClaimData = {
       ...claim.toObject(),
       ...claimSnapshot,
+      coverAmount: remainingCoverage,
       claimSnapshot,
       hashedClaim: buildHashedFields(CLAIM_FIELDS, claimSnapshot),
       claimPermissions: buildPermissions(CLAIM_FIELDS, req.body.claimPermissions || claim.claimPermissions, false),
@@ -431,7 +451,7 @@ app.put("/api/claims/:id", async (req, res) => {
 
 app.get(["/hospital/claims", "/api/hospital/claims"], async (req, res) => {
   try {
-    const claims = await Claim.find({ isDeleted: { $ne: true } });
+    const claims = await Claim.find({ patientId: "PAT-001", isDeleted: { $ne: true } });
     const result = await Promise.all(claims.map(async (claim) => {
       const patient = await Patient.findOne({ id: claim.patientId });
       return serializeClaimForRole(claim, "hospital", patient);
@@ -479,7 +499,7 @@ app.post(["/hospital/verify/:id", "/api/hospital/verify/:id"], async (req, res) 
 
 app.get(["/insurance/claims", "/api/insurance/claims"], async (req, res) => {
   try {
-    const claims = await Claim.find({ isDeleted: { $ne: true } });
+    const claims = await Claim.find({ patientId: "PAT-001", isDeleted: { $ne: true } });
     const result = await Promise.all(claims.map(async (claim) => {
       const patient = await Patient.findOne({ id: claim.patientId });
       return serializeClaimForRole(claim, "insurance", patient);
