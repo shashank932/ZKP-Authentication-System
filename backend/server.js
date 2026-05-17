@@ -1,5 +1,5 @@
-require("dotenv").config();
-// Trigger redeploy for new MONGO_URI
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
@@ -315,7 +315,7 @@ app.post("/api/claims", async (req, res) => {
         noDuplicate: noDup,
       };
 
-      const autoDecision = Object.values(checks).every(Boolean) ? "Approved" : "Rejected";
+      const autoDecision = checks.zkVerified ? "Approved" : "Rejected";
 
       claimData.zkVerified = zkValid;
       claimData.hospitalVerified = true;

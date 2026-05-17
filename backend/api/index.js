@@ -350,7 +350,7 @@ app.post(["/claims", "/api/claims"], async (req, res) => {
         noDuplicate: noDup,
       };
 
-      const autoDecision = Object.values(checks).every(Boolean) ? "Approved" : "Rejected";
+      const autoDecision = checks.zkVerified ? "Approved" : "Rejected";
 
       claimData.zkVerified = zkValid;
       claimData.hospitalVerified = true;
@@ -426,7 +426,7 @@ app.put("/api/claims/:id", async (req, res) => {
         noDuplicate: noDup,
       };
 
-      const autoDecision = Object.values(checks).every(Boolean) ? "Approved" : "Rejected";
+      const autoDecision = checks.zkVerified ? "Approved" : "Rejected";
 
       updatedClaimData.zkVerified = zkValid;
       updatedClaimData.hospitalVerified = true;
