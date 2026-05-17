@@ -43,6 +43,16 @@ export function deleteClaim(claimId) {
   });
 }
 
+export function getClaims(patientId) {
+  return request(`/patient/claims/${patientId}`);
+}
+
+export function deleteClaim(claimId) {
+  return request(`/claims/${claimId}`, {
+    method: "DELETE",
+  });
+}
+
 export function permanentDeleteClaim(claimId) {
   return request(`/claims/permanent/${claimId}`, {
     method: "DELETE",
@@ -51,6 +61,18 @@ export function permanentDeleteClaim(claimId) {
 
 export function recoverClaim(claimId) {
   return request(`/claims/recover/${claimId}`, {
+    method: "POST",
+  });
+}
+
+export function permanentDeleteAllClaims(patientId) {
+  return request(`/claims/permanent-all/${patientId}`, {
+    method: "DELETE",
+  });
+}
+
+export function recoverAllClaims(patientId) {
+  return request(`/claims/recover-all/${patientId}`, {
     method: "POST",
   });
 }

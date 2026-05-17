@@ -502,6 +502,24 @@ app.post("/api/claims/recover/:id", async (req, res) => {
   }
 });
 
+app.delete("/api/claims/permanent-all/:patientId", async (req, res) => {
+  try {
+    await Claim.deleteMany({ patientId: req.params.patientId, isDeleted: true });
+    res.json({ success: true, message: "All deleted claims permanently deleted" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/claims/recover-all/:patientId", async (req, res) => {
+  try {
+    await Claim.updateMany({ patientId: req.params.patientId, isDeleted: true }, { isDeleted: false });
+    res.json({ success: true, message: "All deleted claims recovered successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── DATABASE CONNECTION ──────────────────────────────────────────────────────
 
 const connectDB = async () => {
