@@ -43,16 +43,6 @@ export function deleteClaim(claimId) {
   });
 }
 
-export function getClaims(patientId) {
-  return request(`/patient/claims/${patientId}`);
-}
-
-export function deleteClaim(claimId) {
-  return request(`/claims/${claimId}`, {
-    method: "DELETE",
-  });
-}
-
 export function permanentDeleteClaim(claimId) {
   return request(`/claims/permanent/${claimId}`, {
     method: "DELETE",
