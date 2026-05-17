@@ -672,9 +672,6 @@ export default function PatientDashboard() {
                           <td className="px-6 py-3.5 text-gray-500">{c.claimData?.type || "-"}</td>
                           <td className="px-6 py-3.5 text-gray-500">{c.claimData?.date || "-"}</td>
                           <td className="px-6 py-3.5 text-right font-semibold text-gray-900">₹{Number(c.claimData?.amount || 0).toLocaleString()}</td>
-                           <td className="px-6 py-3.5 text-center">
-                             <button onClick={() => handleDeleteClaim(c.id)} className="text-xs text-red-600 hover:underline font-semibold">Delete</button>
-                           </td>
                           <td className="px-6 py-3.5 text-center"><StatusBadge status={c.status} /></td>
                         </tr>
                       ))}
